@@ -13,7 +13,8 @@ const isUserAuthenticated = asyncHandler(
                 return res.status(401).json({ message: 'No token provided' });
             }
 
-            const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+            // Ignore token expiration
+            const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }) as JwtPayload;
 
             const User = await prisma.user.findUnique({
                 where: { id: decoded.userId },
@@ -27,7 +28,7 @@ const isUserAuthenticated = asyncHandler(
             next();
         } catch (err: any) {
             console.error('JWT Verification Error:', err.message);
-            res.status(401).json({ message: 'Invalid or expired token' });
+            res.status(401).json({ message: 'Invalid token' });
         }
     }
 );
