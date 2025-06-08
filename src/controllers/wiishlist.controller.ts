@@ -17,7 +17,7 @@ export const addWishlistItem = asyncHandler(
                     .json(new ApiError(400, 'Product ID is required'));
             }
 
-            const userId = req.params.userId;
+            const userId = req.user?.id;
             if (!userId) {
                 return res
                     .status(400)
@@ -57,7 +57,7 @@ export const getWishlistItems = asyncHandler(
     async (req: Request, res: Response) => {
         try {
             logger.debug("Let's get wishlist items");
-            const userId = req.params.userId;
+            const userId = req.user?.id;
             if (!userId) {
                 return res
                     .status(400)
@@ -101,7 +101,7 @@ export const deleteWishlistItem = asyncHandler(
                     .json(new ApiError(400, 'Product ID is required'));
             }
 
-            const userId = req.params.userId;
+            const userId = req.user?.id;
             if (!userId) {
                 return res
                     .status(400)

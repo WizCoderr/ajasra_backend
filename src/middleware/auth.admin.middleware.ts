@@ -27,7 +27,7 @@ const isadminAuthenticated = asyncHandler(
                 return res.status(403).json({ message: 'Forbidden: Admin access required' });
             }
 
-            req.admin = admin;
+            req.user = admin;
             next();
         } catch (err: any) {
             console.error('JWT Verification Error:', err.message);

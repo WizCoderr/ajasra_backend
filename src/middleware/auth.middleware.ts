@@ -3,7 +3,7 @@ import { type Request, type Response, type NextFunction } from 'express';
 import { prisma } from '../../prisma';
 import { asyncHandler } from '../utils/AsyncHandler';
 
-const JWT_SECRET = process.env.JWT_SECRET as string; // Fallback for dev
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 const isUserAuthenticated = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -13,18 +13,17 @@ const isUserAuthenticated = asyncHandler(
                 return res.status(401).json({ message: 'No token provided' });
             }
 
-            // Ignore token expiration
             const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }) as JwtPayload;
 
-            const User = await prisma.user.findUnique({
+            const user = await prisma.user.findUnique({
                 where: { id: decoded.userId },
             });
 
-            if (!User) {
+            if (!user) {
                 return res.status(403).json({ message: 'Unauthorized' });
             }
 
-            req.user = User;
+            req.user = user
             next();
         } catch (err: any) {
             console.error('JWT Verification Error:', err.message);
@@ -32,4 +31,5 @@ const isUserAuthenticated = asyncHandler(
         }
     }
 );
+
 export default isUserAuthenticated;

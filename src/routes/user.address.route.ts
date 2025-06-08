@@ -12,7 +12,7 @@ router.post(
     auth,
     validate(addressSchema),
     (req, res, next) => {
-        logger.info(`Adding address for user: ${req.params.userId}`);
+        logger.info(`Adding address for user: ${req.user?.id}`);
         next();
     },
     addUserAddress

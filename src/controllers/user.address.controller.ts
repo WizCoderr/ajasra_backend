@@ -9,7 +9,7 @@ import logger from '../utils/logger';
 export const addUserAddress = asyncHandler(async (req: Request, res: Response) => {
     try {
         logger.info('Adding user address');
-        const userId = req.params.userId;
+        const userId = req.user?.id;
 
         // Validate request body
         const { street, city, state, postalCode, country } = req.body;

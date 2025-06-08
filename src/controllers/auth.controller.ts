@@ -10,15 +10,16 @@ import { tr } from 'zod/v4/locales';
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 export const registerOrLoginUser = asyncHandler(
     async (req: Request, res: Response) => {
-        const { phoneNumber, email, password, fullName } = req.body;
+        const { email, password, fullName, phoneNumber } = req.body;
 
-        if (!email || !password || !fullName || !phoneNumber) {
-            throw new ApiError(400, 'All fields are required');
+        if (!email || !password) {
+            throw new ApiError(400, 'Email and password are required');
         }
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
 
         if (existingUser) {
+            // Login flow
             const isPasswordCorrect = await bcrypt.compare(
                 password,
                 existingUser.password
@@ -31,10 +32,11 @@ export const registerOrLoginUser = asyncHandler(
             }
 
             const token = jwt.sign(
-            { userId: existingUser.id, email: existingUser.email },
-            JWT_SECRET);
+                { userId: existingUser.id, email: existingUser.email },
+                JWT_SECRET
+            );
 
-            const response={ token, user: existingUser }
+            const response = { token, user: existingUser };
             return res
                 .status(200)
                 .json(
@@ -44,6 +46,11 @@ export const registerOrLoginUser = asyncHandler(
                         'Login successful'
                     )
                 );
+        }
+
+        // Registration flow
+        if (!fullName || !phoneNumber) {
+            throw new ApiError(400, 'Full name and phone number are required for registration');
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -60,7 +67,8 @@ export const registerOrLoginUser = asyncHandler(
 
         const token = jwt.sign(
             { userId: newUser.id, email: newUser.email },
-            JWT_SECRET);
+            JWT_SECRET
+        );
         return res
             .status(201)
             .json(
@@ -80,10 +88,10 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
 });
 
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).userId;
+    const userId = req.user?.id;
 
     if (!userId) {
-        return res.status(401).json({ message: 'Unauthorized' });
+        throw new ApiError(401, 'User not authenticated');
     }
 
     const user = await prisma.user.findUnique({
@@ -94,14 +102,15 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
             fullName: true,
             phone: true,
             role: true,
+            address: true,
         },
     });
 
     if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        throw new ApiError(404, 'User not found');
     }
 
-    res.json({ user });
+    res.status(200).json(new ApiResponse(200, user, 'User retrieved successfully'));
 });
 
 // -----------------Admin Auth Controller-----------------

@@ -11,7 +11,7 @@ import { asyncHandler } from '../utils/AsyncHandler';
 // 1️⃣ Place a new order
 export const placeOrder = asyncHandler(async (req: Request, res: Response) => {
     try {
-        const userId = req.params.id;
+        const userId = req.user?.id;
         if (!userId) {
             throw new ApiError(400, 'User ID is required');
         }
@@ -75,7 +75,7 @@ export const placeOrder = asyncHandler(async (req: Request, res: Response) => {
 // 2️⃣ Get all orders for the current user
 export const getMyOrders = asyncHandler(async (req: Request, res: Response) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.user?.id;
 
         // Try to get orders from Redis cache
         const cacheKey = `orders:user:${userId}`;
