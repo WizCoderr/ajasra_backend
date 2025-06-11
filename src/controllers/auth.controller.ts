@@ -6,6 +6,7 @@ import { asyncHandler } from '../utils/AsyncHandler';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import { tr } from 'zod/v4/locales';
+import logger from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 export const registerOrLoginUser = asyncHandler(
@@ -119,10 +120,6 @@ export const AdminRegisterOrLoginUser = asyncHandler(
     async (req: Request, res: Response) => {
         const { phoneNumber, email, password, fullName } = req.body;
 
-        if (!email || !password || !fullName || !phoneNumber) {
-            throw new ApiError(400, 'All fields are required');
-        }
-
         const existingUser = await prisma.user.findUnique({ where: { email } });
 
         if (existingUser) {
@@ -174,7 +171,7 @@ export const AdminRegisterOrLoginUser = asyncHandler(
                 new ApiResponse(
                     200,
                     { token, user: newUser },
-                    'User registered successfully'
+                    'Admin registered successfully'
                 )
             );
     }
@@ -190,6 +187,9 @@ export const Adminlogout = asyncHandler(
 
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
     const users = await prisma.user.findMany({
+        where:{
+            role:"USER"
+        },
         select: {
             id: true,
             email: true,

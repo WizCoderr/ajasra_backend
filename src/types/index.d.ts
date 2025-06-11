@@ -1,13 +1,13 @@
-export interface User {
-    id: string;
-    email: string;
-    password: string;
-    fullName: string;
-    phoneNumber?: string;
-    role: UserRole;
-    createdAt: Date;
-    updatedAt: Date;
-}
+    export interface User {
+        id: string;
+        email: string;
+        password: string;
+        fullName: string;
+        phoneNumber?: string;
+        role: UserRole;
+        createdAt: Date;
+        updatedAt: Date;
+    }
 export enum UserRole {
 USER = "USER",
 ADMIN = "ADMIN"
