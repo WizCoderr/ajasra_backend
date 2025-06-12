@@ -9,7 +9,6 @@ import dotenv from 'dotenv';
 import './service/redis.service';
 import logger from './utils/logger';
 import { ApiError } from './utils/ApiError';
-import cors from 'cors';
 dotenv.config({
     path: './.env',
 });
@@ -17,11 +16,7 @@ dotenv.config({
 const app: Application = express();
 const PORT = process.env.PORT || 9000;
 
-app.use(
-    cors({
-        origin: "172.31.128.1:3001"
-    })
-);
+
 // Middleware
 app.use(helmet());
 
@@ -65,5 +60,4 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV}`);
-    logger.info(`Cors is enabled for: ${cors.length}`)
 });
