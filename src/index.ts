@@ -9,6 +9,8 @@ import dotenv from 'dotenv';
 import './service/redis.service';
 import logger from './utils/logger';
 import { ApiError } from './utils/ApiError';
+const headers = new Headers()
+headers.set("Access-Control-Allow-Origin", "*");
 dotenv.config({
     path: './.env',
 });
