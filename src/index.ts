@@ -18,7 +18,9 @@ const app: Application = express();
 const PORT = process.env.PORT || 9000;
 
 app.use(
-    cors()
+    cors({
+        origin:'*'
+    })
 );
 // Middleware
 app.use(helmet());
