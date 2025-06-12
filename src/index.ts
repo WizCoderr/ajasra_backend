@@ -9,8 +9,8 @@ import dotenv from 'dotenv';
 import './service/redis.service';
 import logger from './utils/logger';
 import { ApiError } from './utils/ApiError';
-const headers = new Headers()
-headers.set("Access-Control-Allow-Origin", "*");
+import cors from 'cors';
+
 dotenv.config({
     path: './.env',
 });
@@ -18,10 +18,14 @@ dotenv.config({
 const app: Application = express();
 const PORT = process.env.PORT || 9000;
 
-
 // Middleware
 app.use(helmet());
-
+app.use(
+    cors({
+        origin: ['http://localhost:3000', 'https://yourfrontenddomain.com'], // allow localhost + production frontend
+        credentials: true, // if you use cookies or auth headers
+    })
+);
 app.use(express.json());
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
