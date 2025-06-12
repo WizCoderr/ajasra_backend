@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 9000;
 app.use(helmet());
 app.use(
     cors({
-        origin: ['http://localhost:3000', 'https://yourfrontenddomain.com'], // allow localhost + production frontend
+        origin: ['http://localhost:3000', 'https://localhost:3001'], // allow localhost + production frontend
         credentials: true, // if you use cookies or auth headers
     })
 );
