@@ -19,9 +19,7 @@ const PORT = process.env.PORT || 9000;
 
 app.use(
     cors({
-        origin: "172.31.128.1:3001",
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        origin: "172.31.128.1:3001"
     })
 );
 // Middleware
