@@ -21,10 +21,7 @@ const PORT = process.env.PORT || 9000;
 // Middleware
 app.use(helmet());
 app.use(
-    cors({
-        origin: ['http://localhost:3000', 'https://localhost:3001'], // allow localhost + production frontend
-        credentials: true, // if you use cookies or auth headers
-    })
+    cors()
 );
 app.use(express.json());
 app.use(express.static('public'));
