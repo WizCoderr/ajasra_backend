@@ -6,7 +6,6 @@ import {ApiError} from '../utils/ApiError';
 import {uplaodOnCloudinary} from '../service/cloudanery.service';
 import {redis} from '../service/redis.service';
 export const getCategories = asyncHandler(async (req: Request, res: Response) => {
-    // Try to get categories from Redis cache
     const cachedCategories = await redis.get('categories');
     if (cachedCategories) {
         const categories = JSON.parse(cachedCategories);
