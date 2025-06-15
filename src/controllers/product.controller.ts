@@ -1,6 +1,5 @@
 import { type Request, type Response } from 'express';
 import { prisma } from '../../prisma';
-import { handleAppError } from '../service/error.service';
 import { uplaodOnCloudinary } from '../service/cloudanery.service';
 import { createProductSchema } from '../middleware/validation.middleware';
 import { asyncHandler } from '../utils/AsyncHandler';
@@ -126,7 +125,7 @@ export const addProduct = asyncHandler(
                     },
                 },
                 include: {
-                    category: true, 
+                    category: true,
                 },
             });
 
@@ -174,9 +173,15 @@ export const getAllProductsForCategory = asyncHandler(
             const cachedProducts = await redis.get(cacheKey);
             if (cachedProducts) {
                 const products = JSON.parse(cachedProducts);
-                return res.status(200).json(
-                    new ApiResponse(200, products, 'Products fetched successfully (from cache)')
-                );
+                return res
+                    .status(200)
+                    .json(
+                        new ApiResponse(
+                            200,
+                            products,
+                            'Products fetched successfully (from cache)'
+                        )
+                    );
             }
 
             // Fetch products for the given category from DB
@@ -263,5 +268,53 @@ export const deleteProductFromCategoryAndProduct = asyncHandler(
                 )
             );
         }
+    }
+);
+export const updateStockEntry = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { productId } = req.params;
+        const { inStock } = req.body;
+
+        // Find the product to get its categoryId
+        const product = await prisma.product.findUnique({
+            where: { id: productId },
+            select: { categoryId: true }
+        });
+
+        if (!product) {
+            return res.status(404).json(new ApiError(404, "Product not found"));
+        }
+
+        const cacheKey = `category_products:${product.categoryId}`;
+        let products: any[] = [];
+
+        // Check if products for this category are cached
+        const cachedProducts = await redis.get(cacheKey);
+        if (cachedProducts) {
+            try {
+                products = JSON.parse(cachedProducts);
+                // Update the inStock value for the product in cache
+                const index = products.findIndex((p: any) => p.id === productId);
+                if (index !== -1) {
+                    products[index].inStock = inStock;
+                }
+            } catch {
+                products = [];
+            }
+        }
+
+        // Update the product in the database
+        const updatedProduct = await prisma.product.update({
+            where: { id: productId },
+            data: { inStock: inStock },
+        });
+
+        // If cache was present, update it
+        if (cachedProducts) {
+            await redis.set(cacheKey, JSON.stringify(products));
+        }
+
+        logger.info('Product updated Successfully');
+        res.status(200).json(new ApiResponse(200, updatedProduct, "Product Updated Successfully"));
     }
 );

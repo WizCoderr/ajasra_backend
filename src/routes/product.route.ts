@@ -1,7 +1,12 @@
 import express from 'express';
-import { addProduct , getAllProductsForCategory ,deleteProductFromCategoryAndProduct} from '../controllers/product.controller';
+import {
+    addProduct,
+    getAllProductsForCategory,
+    deleteProductFromCategoryAndProduct,
+    updateStockEntry,
+} from '../controllers/product.controller';
 import { upload } from '../middleware/multer.middleware';
-import auth from '../middleware/auth.middleware';   
+import auth from '../middleware/auth.middleware';
 import adminAuth from '../middleware/auth.admin.middleware';
 import logger from '../utils/logger';
 
@@ -26,10 +31,21 @@ router.get(
     getAllProductsForCategory
 );
 
+router.put(
+    '/:productId/updateStock',
+    (req, res, next) => {
+        logger.debug(`Updating product ${req.params.productId}`);
+        next();
+    },
+    adminAuth,
+    updateStockEntry
+);
 router.delete(
     '/:productId/:categoryId',
     (req, res, next) => {
-        logger.debug(`Deleting product ${req.params.productId} from category ${req.params.categoryId}`);
+        logger.debug(
+            `Deleting product ${req.params.productId} from category ${req.params.categoryId}`
+        );
         next();
     },
     adminAuth,
