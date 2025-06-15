@@ -124,17 +124,9 @@ export const addProduct = asyncHandler(
                     category: {
                         connect: { id: validatedData.categoryId },
                     },
-                    sizes: {
-                        create: validatedData.sizes,
-                    },
-                    colors: {
-                        create: validatedData.colors,
-                    },
                 },
                 include: {
-                    category: true,
-                    sizes: true,
-                    colors: true,
+                    category: true, 
                 },
             });
 

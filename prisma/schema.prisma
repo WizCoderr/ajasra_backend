@@ -28,8 +28,8 @@ model Product {
   images       String[]
   categoryId   String         @db.ObjectId
   category     Category       @relation(fields: [categoryId], references: [id])
-  sizes        ProductSize[]  @relation("ProductSizes")
-  colors       ProductColor[] @relation("ProductColors")
+  sizes        String[]
+  colors       String[]
   material     String
   fit          Fit            @default(REGULAR)
   brand        String 
@@ -46,27 +46,6 @@ model Product {
 }
 
 
-model ProductSize {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  product   Product  @relation(fields: [productId], references: [id], name: "ProductSizes")
-  productId String   @db.ObjectId
-  size      String
-  chest     Float
-  waist     Float
-  sleeve    Float
-  quantity  Int
-  inStock   Boolean
-}
-
-model ProductColor {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  product   Product  @relation(fields: [productId], references: [id], name: "ProductColors")
-  productId String   @db.ObjectId
-  name      String
-  hex       String
-  quantity  Int
-  inStock   Boolean
-}
 
 model Category {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
