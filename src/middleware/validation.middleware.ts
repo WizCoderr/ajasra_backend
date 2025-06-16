@@ -50,32 +50,9 @@ export const createProductSchema = z.object({
     fit: fitEnum,
     brand: z.string().min(1, 'Brand is required'),
     featured: z.boolean(),
-    sizes: z
-        .array(
-            z.object({
-                size: z.string().min(1, 'Size name is required'),
-                chest: z.number().nonnegative('Chest must be a number'),
-                waist: z.number().nonnegative('Waist must be a number'),
-                sleeve: z.number().nonnegative('Sleeve must be a number'),
-                quantity: z.number().int().nonnegative('Quantity must be >= 0'),
-                inStock: z.boolean(),
-            })
-        )
+    sizes: z.array(z.string())
         .nonempty('At least one size is required'),
-    colors: z
-        .array(
-            z.object({
-                name: z.string().min(1, 'Color name is required'),
-                hex: z
-                    .string()
-                    .regex(
-                        /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/,
-                        'Invalid hex color'
-                    ),
-                quantity: z.number().int().nonnegative('Quantity must be >= 0'),
-                inStock: z.boolean(),
-            })
-        )
+    colors: z.array(z.string())
         .nonempty('At least one color is required'),
 
     categoryId: z.string().length(24, 'Invalid MongoDB ObjectId'),

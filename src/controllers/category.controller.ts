@@ -72,3 +72,36 @@ export const createCategory = asyncHandler(async (req: Request, res: Response) =
 
     res.status(201).json(new ApiResponse(201, newCategory, "Category created successfully"));
 });
+
+// Grt Products from categoryName
+export const getProductsForCategoryByName = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { categoryName } = req.params;
+
+        // Try to get products from Redis cache
+        const cacheKey = `category_products:${categoryName}`;
+        const cachedProducts = await redis.get(cacheKey);
+        if (cachedProducts) {
+            const products = JSON.parse(cachedProducts);
+            return res.status(200).json(new ApiResponse(200, products, "Products retrieved successfully (from cache)"));
+        }
+
+        const category = await prisma.category.findFirst({
+            where: {
+                name: categoryName
+            },
+            select: {
+                products: true
+            }
+        });
+
+        if (!category) {
+            return res.status(404).json(new ApiError(404, "Category not found"));
+        }
+
+        // Store products in Redis cache
+        await redis.set(cacheKey, JSON.stringify(category.products));
+
+        res.status(200).json(new ApiResponse(200, category.products, "Products retrieved successfully"));
+    }
+)
