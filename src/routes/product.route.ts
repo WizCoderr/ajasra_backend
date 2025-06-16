@@ -1,6 +1,7 @@
 import express from 'express';
 import {
     addProduct,
+    getAllProducts,
     getAllProductsForCategory,
     deleteProductFromCategoryAndProduct,
     updateStockEntry,
@@ -29,6 +30,16 @@ router.get(
         next();
     },
     getAllProductsForCategory
+);
+
+router.get(
+    '/',
+    (req, res, next) => {
+        logger.debug('Getting All Products');
+        next();
+    },
+    auth,
+    getAllProducts
 );
 
 router.put(

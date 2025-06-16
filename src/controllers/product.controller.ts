@@ -278,11 +278,11 @@ export const updateStockEntry = asyncHandler(
         // Find the product to get its categoryId
         const product = await prisma.product.findUnique({
             where: { id: productId },
-            select: { categoryId: true }
+            select: { categoryId: true },
         });
 
         if (!product) {
-            return res.status(404).json(new ApiError(404, "Product not found"));
+            return res.status(404).json(new ApiError(404, 'Product not found'));
         }
 
         const cacheKey = `category_products:${product.categoryId}`;
@@ -294,7 +294,9 @@ export const updateStockEntry = asyncHandler(
             try {
                 products = JSON.parse(cachedProducts);
                 // Update the inStock value for the product in cache
-                const index = products.findIndex((p: any) => p.id === productId);
+                const index = products.findIndex(
+                    (p: any) => p.id === productId
+                );
                 if (index !== -1) {
                     products[index].inStock = inStock;
                 }
@@ -315,6 +317,20 @@ export const updateStockEntry = asyncHandler(
         }
 
         logger.info('Product updated Successfully');
-        res.status(200).json(new ApiResponse(200, updatedProduct, "Product Updated Successfully"));
+        res.status(200).json(
+            new ApiResponse(200, updatedProduct, 'Product Updated Successfully')
+        );
+    }
+);
+
+export const getAllProducts = asyncHandler(
+    async (req: Request, res: Response) => {
+        const products = await prisma.product.findMany();
+        if (!products) {
+            res.status(400).json(new ApiError(400, 'Product Not Found'));
+        }
+        res.status(200).json(
+            new ApiResponse(200, products, 'All Products are here')
+        );
     }
 );
