@@ -20,9 +20,7 @@ const PORT = process.env.PORT || 9000;
 
 // Middleware
 app.use(helmet());
-app.use(
-    cors()
-);
+app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
@@ -34,6 +32,7 @@ import productRoutes from './routes/product.route';
 import wishlistRoute from './routes/wishlist.route';
 import addressRoute from './routes/user.address.route';
 import orderRoute from './routes/order.route';
+import sliderRoute from './routes/slider.route';
 import paymentRoute from './routes/payment.route';
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -41,6 +40,7 @@ app.use('/api/category', categoryRoutes);
 app.use('/api/product', productRoutes);
 app.use('/api/wishlist', wishlistRoute);
 app.use('/api/address', addressRoute);
+app.use('/api/slider', sliderRoute);
 app.use('/api/order', orderRoute);
 app.use('/payment', paymentRoute);
 app.get('/health', (_req, res) => {

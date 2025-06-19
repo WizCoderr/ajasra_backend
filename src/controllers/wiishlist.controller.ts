@@ -74,7 +74,11 @@ export const getWishlistItems = asyncHandler(
                     },
                 },
             });
-
+            if(!wishlistItems){
+                return res.json({
+                    'size': 0
+                })
+            }
             return res
                 .status(200)
                 .json(
