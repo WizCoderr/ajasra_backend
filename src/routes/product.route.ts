@@ -5,6 +5,7 @@ import {
     getAllProductsForCategory,
     deleteProductFromCategoryAndProduct,
     updateStockEntry,
+    getFeaturedProducts,
 } from '../controllers/product.controller';
 import { upload } from '../middleware/multer.middleware';
 import auth from '../middleware/auth.middleware';
@@ -24,7 +25,6 @@ router.post(
 );
 router.get(
     '/category/:categoryId',
-    auth,
     (req, res, next) => {
         logger.debug(`Getting products for category: ${req.params.categoryId}`);
         next();
@@ -38,10 +38,16 @@ router.get(
         logger.debug('Getting All Products');
         next();
     },
-    auth,
     getAllProducts
 );
-
+router.get(
+    '/featured',
+    (req, res, next) => {
+        logger.debug("Fetures Products")
+        next();
+    },
+    getFeaturedProducts
+)
 router.put(
     '/:productId/updateStock',
     (req, res, next) => {

@@ -297,3 +297,17 @@ export const getAllProducts = asyncHandler(
         );
     }
 );
+
+
+
+export const getFeaturedProducts = asyncHandler(
+    async(req:Request,res:Response)=>{
+        const product = await prisma.product.findMany({
+            where:{
+                featured:true
+            }
+        })
+
+        res.status(200).json(new ApiResponse(200, product,"All Fetured Products"))
+    }
+)

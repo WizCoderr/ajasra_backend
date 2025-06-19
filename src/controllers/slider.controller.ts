@@ -52,13 +52,13 @@ export const addSlider = asyncHandler(
 
 export const deleteSlider = asyncHandler(
     async (req: Request, res: Response) => {
-        const { id } = req.params;
+        const { sliderId } = req.params;
         logger.info('Deleting Slider');
-        if (!id) {
+        if (!sliderId) {
             throw new ApiError(400, 'Id is requird');
         }
         await prisma.slider.delete({
-            where: { id: id },
+            where: { id: sliderId },
         });
 
         res.status(200).json(
