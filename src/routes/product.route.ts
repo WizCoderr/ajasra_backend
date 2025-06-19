@@ -48,6 +48,7 @@ router.get(
     },
     getFeaturedProducts
 )
+
 router.put(
     '/:productId/updateStock',
     (req, res, next) => {
