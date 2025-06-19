@@ -123,9 +123,7 @@ model UserWishlist {
 
 model Slider{
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  title String
   image String
-  subtitle String
 }
 
 type Address {

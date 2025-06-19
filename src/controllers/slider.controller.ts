@@ -15,15 +15,11 @@ interface MulterRequest extends Request {
 
 export const addSlider = asyncHandler(
     async (req: MulterRequest, res: Response) => {
-        const { title, subtitle } = req.body;
         const image = req.file;
 
         logger.info(
-            `Slider with title: ${title} subtitle: ${subtitle} is uploading`
+            `Slider is uploading`
         );
-        if (!title || !subtitle) {
-            throw new ApiError(400, 'Title and subTitle are required');
-        }
 
         if (!image) {
             throw new ApiError(400, 'Image file is required');
@@ -38,8 +34,6 @@ export const addSlider = asyncHandler(
 
         const slider = await prisma.slider.create({
             data: {
-                title,
-                subtitle,
                 image: uploadResult,
             },
         });
