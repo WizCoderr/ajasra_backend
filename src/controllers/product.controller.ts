@@ -304,9 +304,66 @@ export const updateStockEntry = asyncHandler(
     }
 );
 
+export const updateFeaturedEntry = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { productId } = req.params;
+        const { featured } = req.body;
+
+        // Find the product to get its categoryId
+        const product = await prisma.product.findUnique({
+            where: { id: productId },
+            select: { categoryId: true },
+        });
+
+        if (!product) {
+            return res.status(404).json(new ApiError(404, 'Product not found'));
+        }
+
+        const cacheKey = `category_products:${product.categoryId}`;
+        let products: any[] = [];
+
+        // Check if products for this category are cached
+        const cachedProducts = await redis.get(cacheKey);
+        if (cachedProducts) {
+            try {
+                products = JSON.parse(cachedProducts);
+                // Update the inStock value for the product in cache
+                const index = products.findIndex(
+                    (p: any) => p.id === productId
+                );
+                if (index !== -1) {
+                    products[index].featured = featured;
+                }
+            } catch {
+                products = [];
+            }
+        }
+
+        // Update the product in the database
+        const updatedProduct = await prisma.product.update({
+            where: { id: productId },
+            data: { featured: featured },
+        });
+
+        // If cache was present, update it
+        if (cachedProducts) {
+            await redis.set(cacheKey, JSON.stringify(products));
+        }
+
+        logger.info('Product updated Successfully');
+        res.status(200).json(
+            new ApiResponse(200, updatedProduct, 'Product Updated Successfully')
+        );
+    }
+);
+
 export const getAllProducts = asyncHandler(
     async (req: Request, res: Response) => {
-        const products = await prisma.product.findMany();
+        const products = await prisma.product.findMany({
+            where:{
+                inStock:true
+            }
+        });
         if (!products) {
             res.status(400).json(new ApiError(400, 'Product Not Found'));
         }

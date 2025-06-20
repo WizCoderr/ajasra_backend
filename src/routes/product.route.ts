@@ -6,6 +6,7 @@ import {
     deleteProductFromCategoryAndProduct,
     updateStockEntry,
     getFeaturedProducts,
+    updateFeaturedEntry,
 } from '../controllers/product.controller';
 import { upload } from '../middleware/multer.middleware';
 import auth from '../middleware/auth.middleware';
@@ -57,6 +58,15 @@ router.put(
     },
     adminAuth,
     updateStockEntry
+);
+router.put(
+    '/:productId/updateFeatured',
+    (req, res, next) => {
+        logger.debug(`Updating product ${req.params.productId}`);
+        next();
+    },
+    adminAuth,
+    updateFeaturedEntry
 );
 router.delete(
     '/:productId/:categoryId',
