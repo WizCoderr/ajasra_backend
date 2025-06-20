@@ -7,7 +7,8 @@ import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import logger from '../utils/logger';
 import { redis } from '../service/redis.service';
-import fs from 'fs'
+import fs from 'fs';
+import { handleAppError } from '../service/error.service';
 interface MulterRequest extends Request {
     files?:
         | Express.Multer.File[]
@@ -15,135 +16,172 @@ interface MulterRequest extends Request {
         | any;
 }
 
-export const addProduct = asyncHandler(async (req: MulterRequest, res: Response) => {
-    const uploadedFiles: string[] = []; // Track uploaded file paths for cleanup
-    
-    try {
-        const categoryId = req.params.categoryId;
-        logger.info(`Creating product for category: ${categoryId}`);
+export const addProduct = asyncHandler(
+    async (req: MulterRequest, res: Response) => {
+        const uploadedFiles: string[] = []; // Track uploaded file paths for cleanup
 
-        // 1. Validate Category
-        const category = await prisma.category.findUnique({
-            where: { id: categoryId },
-        });
-        if (!category) throw new ApiError(404, 'Category not found');
+        try {
+            const categoryId = req.params.categoryId;
+            logger.info(`Creating product for category: ${categoryId}`);
 
-        // 2. Required Fields Check
-        const requiredFields = ['name', 'description', 'price', 'material', 'fit', 'brand'];
-        const missingFields = requiredFields.filter(field => !req.body[field]);
-        if (missingFields.length > 0) {
-            throw new ApiError(400, `Missing required fields: ${missingFields.join(', ')}`);
-        }
+            // 1. Validate Category
+            const category = await prisma.category.findUnique({
+                where: { id: categoryId },
+            });
+            if (!category) throw new ApiError(404, 'Category not found');
 
-        // 3. Parse Request Body
-        const parsedBody = {
-            name: req.body.name,
-            description: req.body.description,
-            price: parseFloat(req.body.price),
-            material: req.body.material,
-            fit: (req.body.fit || '').toUpperCase(),
-            brand: req.body.brand,
-            featured: req.body.featured === 'true' || Boolean(req.body.featured),
-            sizes: Array.isArray(req.body.sizes) 
-                ? req.body.sizes 
-                : req.body.sizes 
-                    ? req.body.sizes.split(',').map((s: string) => s.trim()).filter(Boolean)
+            // 2. Required Fields Check
+            const requiredFields = [
+                'name',
+                'description',
+                'price',
+                'material',
+                'fit',
+                'brand',
+            ];
+            const missingFields = requiredFields.filter(
+                (field) => !req.body[field]
+            );
+            if (missingFields.length > 0) {
+                throw new ApiError(
+                    400,
+                    `Missing required fields: ${missingFields.join(', ')}`
+                );
+            }
+
+            // 3. Parse Request Body
+            const parsedBody = {
+                name: req.body.name,
+                description: req.body.description,
+                price: parseFloat(req.body.price),
+                material: req.body.material,
+                fit: (req.body.fit || '').toUpperCase(),
+                brand: req.body.brand,
+                featured:
+                    req.body.featured === 'true' || Boolean(req.body.featured),
+                sizes: Array.isArray(req.body.sizes)
+                    ? req.body.sizes
+                    : req.body.sizes
+                    ? req.body.sizes
+                          .split(',')
+                          .map((s: string) => s.trim())
+                          .filter(Boolean)
                     : [],
-            colors: Array.isArray(req.body.colors) 
-                ? req.body.colors 
-                : req.body.colors
-                    ? req.body.colors.split(',').map((c: string) => c.trim()).filter(Boolean)
+                colors: Array.isArray(req.body.colors)
+                    ? req.body.colors
+                    : req.body.colors
+                    ? req.body.colors
+                          .split(',')
+                          .map((c: string) => c.trim())
+                          .filter(Boolean)
                     : [],
-            categoryId,
-        };
+                categoryId,
+            };
 
-        // 4. Validate with Zod
-        const validatedData = createProductSchema.parse(parsedBody);
-        const allowedFits = ['SLIM', 'REGULAR'];
-        if (!allowedFits.includes(validatedData.fit)) {
-            throw new ApiError(400, 'Invalid fit. Must be SLIM or REGULAR');
-        }
+            // 4. Validate with Zod
+            const validatedData = createProductSchema.parse(parsedBody);
+            const allowedFits = ['SLIM', 'REGULAR'];
+            if (!allowedFits.includes(validatedData.fit)) {
+                throw new ApiError(400, 'Invalid fit. Must be SLIM or REGULAR');
+            }
 
-        // 5. Upload Images to Cloudinary
-        const uploadedImages: string[] = [];
+            // 5. Upload Images to Cloudinary
+            const uploadedImages: string[] = [];
 
-        if (req.files && Array.isArray(req.files)) {
-            // Store file paths for cleanup
-            uploadedFiles.push(...req.files.map(f => f.path));
-            
-            for (const file of req.files) {
-                try {
-                    const imageUrl = await uplaodOnCloudinary(file.path);
-                    if (imageUrl) {
-                        uploadedImages.push(imageUrl);
-                    } else {
-                        logger.warn(`Failed to upload image: ${file.originalname}`);
+            if (req.files && Array.isArray(req.files)) {
+                // Store file paths for cleanup
+                uploadedFiles.push(...req.files.map((f) => f.path));
+
+                for (const file of req.files) {
+                    try {
+                        const imageUrl = await uplaodOnCloudinary(file.path);
+                        if (imageUrl) {
+                            uploadedImages.push(imageUrl);
+                        } else {
+                            logger.warn(
+                                `Failed to upload image: ${file.originalname}`
+                            );
+                        }
+                    } catch (uploadError) {
+                        logger.error(
+                            `Error uploading file ${file.originalname}:`,
+                            uploadError
+                        );
+                        // Continue with other files even if one fails
                     }
-                } catch (uploadError) {
-                    logger.error(`Error uploading file ${file.originalname}:`, uploadError);
-                    // Continue with other files even if one fails
+                }
+
+                // Ensure at least one image was uploaded successfully
+                if (uploadedImages.length === 0) {
+                    throw new ApiError(
+                        400,
+                        'Failed to upload any images. Please try again.'
+                    );
                 }
             }
 
-            // Ensure at least one image was uploaded successfully
-            if (uploadedImages.length === 0) {
-                throw new ApiError(400, 'Failed to upload any images. Please try again.');
-            }
-        }
-
-        // 6. Create Product
-        const product = await prisma.product.create({
-            data: {
-                name: validatedData.name,
-                description: validatedData.description,
-                price: validatedData.price,
-                material: validatedData.material,
-                fit: validatedData.fit,
-                brand: validatedData.brand,
-                featured: validatedData.featured,
-                sizes: validatedData.sizes,
-                colors: validatedData.colors,
-                images: uploadedImages,
-                inStock: true,
-                category: {
-                    connect: { id: validatedData.categoryId },
+            // 6. Create Product
+            const product = await prisma.product.create({
+                data: {
+                    name: validatedData.name,
+                    description: validatedData.description,
+                    price: validatedData.price,
+                    material: validatedData.material,
+                    fit: validatedData.fit,
+                    brand: validatedData.brand,
+                    featured: validatedData.featured,
+                    sizes: validatedData.sizes,
+                    colors: validatedData.colors,
+                    images: uploadedImages,
+                    inStock: true,
+                    category: {
+                        connect: { id: validatedData.categoryId },
+                    },
                 },
-            },
-            include: { category: true },
-        });
+                include: { category: true },
+            });
 
-        // 7. Update Redis Cache
-        const cacheKey = `category_products:${categoryId}`;
-        try {
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                const products = JSON.parse(cached);
-                products.push(product);
-                await redis.set(cacheKey, JSON.stringify(products));
+            // 7. Update Redis Cache
+            const cacheKey = `category_products:${categoryId}`;
+            try {
+                const cached = await redis.get(cacheKey);
+                if (cached) {
+                    const products = JSON.parse(cached);
+                    products.push(product);
+                    await redis.set(cacheKey, JSON.stringify(products));
+                }
+            } catch (cacheError) {
+                logger.warn('Failed to update cache:', cacheError);
+                // Don't fail the request due to cache errors
             }
-        } catch (cacheError) {
-            logger.warn('Failed to update cache:', cacheError);
-            // Don't fail the request due to cache errors
-        }
 
-        // 8. Response
-        return res.status(201).json(
-            new ApiResponse(201, product, 'Product created successfully with images')
-        );
-
-    } catch (error) {
-        // Clean up any uploaded files that weren't processed
-        for (const filePath of uploadedFiles) {
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+            // 8. Response
+            return res
+                .status(201)
+                .json(
+                    new ApiResponse(
+                        201,
+                        product,
+                        'Product created successfully with images'
+                    )
+                );
+        } catch (error) {
+            // Clean up any uploaded files that weren't processed
+            for (const filePath of uploadedFiles) {
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
             }
+
+            logger.error('Error in addProduct:', error);
+            const appError =
+                error instanceof ApiError
+                    ? error
+                    : new ApiError(500, 'Internal Server Error');
+            return res.status(appError.statusCode).json(appError);
         }
-        
-        logger.error('Error in addProduct:', error);
-        const appError = error instanceof ApiError ? error : new ApiError(500, 'Internal Server Error');
-        return res.status(appError.statusCode).json(appError);
     }
-});
+);
 export const getAllProductsForCategory = asyncHandler(
     async (req: Request, res: Response) => {
         try {
@@ -372,9 +410,9 @@ export const getAllProductsForAdmins = asyncHandler(
 export const getAllProducts = asyncHandler(
     async (req: Request, res: Response) => {
         const products = await prisma.product.findMany({
-            where:{
-                inStock:true
-            }
+            where: {
+                inStock: true,
+            },
         });
         if (!products) {
             res.status(400).json(new ApiError(400, 'Product Not Found'));
@@ -385,16 +423,40 @@ export const getAllProducts = asyncHandler(
     }
 );
 
+export const getProductById = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { productId } = req.params;
 
+        try {
+            const product = await prisma.product.findFirst({
+                where: {
+                    id: productId,
+                },
+            });
+
+            res.status(200).json(
+                new ApiResponse(200, product, `Product by id: ${productId}`)
+            );
+        } catch (error) {
+            throw handleAppError(error);
+        }
+    }
+);
 
 export const getFeaturedProducts = asyncHandler(
-    async(req:Request,res:Response)=>{
-        const product = await prisma.product.findMany({
-            where:{
-                featured:true
-            }
-        })
+    async (req: Request, res: Response) => {
+        try {
+            const product = await prisma.product.findMany({
+                where: {
+                    featured: true,
+                },
+            });
 
-        res.status(200).json(new ApiResponse(200, product,"All Fetured Products"))
+            res.status(200).json(
+                new ApiResponse(200, product, 'All Fetured Products')
+            );
+        } catch (error) {
+            throw handleAppError(error);
+        }
     }
-)
+);

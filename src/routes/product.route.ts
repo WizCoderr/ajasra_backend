@@ -8,6 +8,7 @@ import {
     getFeaturedProducts,
     updateFeaturedEntry,
     getAllProductsForAdmins,
+    getProductById,
 } from '../controllers/product.controller';
 import { upload } from '../middleware/multer.middleware';
 import auth from '../middleware/auth.middleware';
@@ -33,6 +34,14 @@ router.get(
     },
     getAllProductsForCategory
 );
+
+router.get(
+    '/:productId',
+    (res,req,next)=>{
+        logger.debug(`Product by id`)
+    },
+    getProductById
+)
 
 router.get(
     '/admin/see',
