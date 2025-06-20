@@ -6,13 +6,6 @@ import {ApiError} from '../utils/ApiError';
 import {uplaodOnCloudinary} from '../service/cloudanery.service';
 import {redis} from '../service/redis.service';
 export const getCategories = asyncHandler(async (req: Request, res: Response) => {
-    const cachedCategories = await redis.get('categories');
-    if (cachedCategories) {
-        const categories = JSON.parse(cachedCategories);
-        return res.status(200).json(new ApiResponse(200, categories, "Categories retrieved successfully (from cache)"));
-    }
-
-    // If not in cache, fetch from database
     const categories = await prisma.category.findMany({
         include: {
             products: true,
@@ -22,9 +15,6 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
     if (!categories || categories.length === 0) {
         return res.status(404).json(new ApiError(404, "No categories found"));
     }
-
-    // Store categories in Redis cache for future requests
-    await redis.set('categories', JSON.stringify(categories));
 
     res.status(200).json(new ApiResponse(200, categories, "Categories retrieved successfully"));
 });

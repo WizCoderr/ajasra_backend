@@ -8,26 +8,28 @@ cloudinary.config({
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
-export const uplaodOnCloudinary = async (filePath: string): Promise<string> => {
+export const uplaodOnCloudinary = async (localFilePath: string): Promise<string | null> => {
     try {
-        const absolutePath = path.resolve(filePath);
+        if (!localFilePath) return null;
 
-        if (!fs.existsSync(absolutePath)) {
-            logger.error("File does not exist", { filePath: absolutePath });
-            throw new Error("File not found");
-        }
-
-        const result = await cloudinary.uploader.upload(absolutePath);
-
-        fs.unlinkSync(absolutePath);
-        logger.info(`File uploaded to Cloudinary: ${result.secure_url}`);
-        return result.secure_url;
-    } catch (error: any) {
-        logger.error('Cloudinary upload error:', {
-            error: error.message || error,
-            filePath,
+        // Upload the file to Cloudinary with signed upload
+        const response = await cloudinary.uploader.upload(localFilePath, {
+            resource_type: "auto",
         });
-        throw new Error('Failed to upload image to Cloudinary');
+
+        // Delete the locally saved temporary file after successful upload
+        fs.unlinkSync(localFilePath);
+        
+        logger.info(`File uploaded to Cloudinary: ${response.secure_url}`);
+        return response.secure_url;
+        
+    } catch (error) {
+        // Remove the locally saved temporary file on error
+        if (fs.existsSync(localFilePath)) {
+            fs.unlinkSync(localFilePath);
+        }
+        
+        logger.error('Cloudinary upload error:', error);
+        return null;
     }
 };

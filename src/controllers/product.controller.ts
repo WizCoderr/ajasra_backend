@@ -7,7 +7,7 @@ import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import logger from '../utils/logger';
 import { redis } from '../service/redis.service';
-
+import fs from 'fs'
 interface MulterRequest extends Request {
     files?:
         | Express.Multer.File[]
@@ -15,117 +15,135 @@ interface MulterRequest extends Request {
         | any;
 }
 
-export const addProduct = asyncHandler(
-    async (req: MulterRequest, res: Response) => {
-        try {
-            const categoryId = req.params.categoryId;
-            logger.info(`Creating product for category: ${categoryId}`);
+export const addProduct = asyncHandler(async (req: MulterRequest, res: Response) => {
+    const uploadedFiles: string[] = []; // Track uploaded file paths for cleanup
+    
+    try {
+        const categoryId = req.params.categoryId;
+        logger.info(`Creating product for category: ${categoryId}`);
 
-            // 1. Validate Category
-            const category = await prisma.category.findUnique({
-                where: { id: categoryId },
-            });
-            if (!category) {
-                throw new ApiError(404, 'Category not found');
-            }
+        // 1. Validate Category
+        const category = await prisma.category.findUnique({
+            where: { id: categoryId },
+        });
+        if (!category) throw new ApiError(404, 'Category not found');
 
-            // 2. Check Required Fields
-            const requiredFields = ['name', 'description', 'price', 'material', 'fit', 'brand'];
-            const missingFields = requiredFields.filter(field => !req.body[field]);
-            if (missingFields.length > 0) {
-                throw new ApiError(400, `Missing required fields: ${missingFields.join(', ')}`);
-            }
-
-            // 3. Parse Body
-            const parsedBody = {
-                name: req.body.name,
-                description: req.body.description,
-                price: parseFloat(req.body.price),
-                material: req.body.material,
-                fit: (req.body.fit || '').toUpperCase(),
-                brand: req.body.brand,
-                featured: req.body.featured === 'true' || Boolean(req.body.featured),
-                sizes: Array.isArray(req.body.sizes)
-                    ? req.body.sizes
-                    : JSON.parse(req.body.sizes || '[]'),
-                colors: Array.isArray(req.body.colors)
-                    ? req.body.colors
-                    : JSON.parse(req.body.colors || '[]'),
-                categoryId,
-            };
-
-            // 4. Validate with Zod
-            const validatedData = createProductSchema.parse(parsedBody);
-            const allowedFits = ['SLIM', 'REGULAR'];
-            if (!allowedFits.includes(validatedData.fit)) {
-                throw new ApiError(400, 'Invalid fit. Must be SLIM or REGULAR');
-            }
-
-            // 5. Upload Images to Cloudinary
-            const uploadedImages: string[] = [];
-            if (req.files && Array.isArray(req.files)) {
-                for (const file of req.files) {
-                    const url = await uplaodOnCloudinary(file.path);
-                    
-                    uploadedImages.push(url);
-                }
-            }
-
-            // 6. Create Product in DB
-            const product = await prisma.product.create({
-                data: {
-                    name: validatedData.name,
-                    description:validatedData.description,
-                    price: validatedData.price,
-                    images: uploadedImages,
-                    sizes: validatedData.sizes,
-                    brand: validatedData.brand,
-                    colors: validatedData.colors,
-                    fit : validatedData.fit,
-                    material: validatedData.material,
-                    inStock: true,
-                    category: {
-                        connect: { id: validatedData.categoryId },
-                    },
-                },
-                include: {
-                    category: true,
-                },
-            });
-
-            // 7. Cache to Redis
-            const cacheKey = `category_products:${categoryId}`;
-            const cached = await redis.get(cacheKey);
-            let products = [];
-
-            if (cached) {
-                try {
-                    products = JSON.parse(cached);
-                } catch {
-                    logger.warn(`Invalid JSON cache at ${cacheKey}`);
-                    products = [];
-                }
-            }
-
-            products.push(product);
-            await redis.set(cacheKey, JSON.stringify(products));
-
-            // 8. Respond
-            logger.info(`Product created: ${product.id}`);
-            return res.status(201).json(
-                new ApiResponse(201, product, 'Product created successfully with images')
-            );
-
-        } catch (error) {
-            logger.error('Error in addProductWithImages:', error);
-            const appError =
-                error instanceof ApiError
-                    ? error
-                    : new ApiError(500, 'Internal Server Error');
-            return res.status(appError.statusCode).json(appError);
+        // 2. Required Fields Check
+        const requiredFields = ['name', 'description', 'price', 'material', 'fit', 'brand'];
+        const missingFields = requiredFields.filter(field => !req.body[field]);
+        if (missingFields.length > 0) {
+            throw new ApiError(400, `Missing required fields: ${missingFields.join(', ')}`);
         }
+
+        // 3. Parse Request Body
+        const parsedBody = {
+            name: req.body.name,
+            description: req.body.description,
+            price: parseFloat(req.body.price),
+            material: req.body.material,
+            fit: (req.body.fit || '').toUpperCase(),
+            brand: req.body.brand,
+            featured: req.body.featured === 'true' || Boolean(req.body.featured),
+            sizes: Array.isArray(req.body.sizes) 
+                ? req.body.sizes 
+                : req.body.sizes 
+                    ? req.body.sizes.split(',').map((s: string) => s.trim()).filter(Boolean)
+                    : [],
+            colors: Array.isArray(req.body.colors) 
+                ? req.body.colors 
+                : req.body.colors
+                    ? req.body.colors.split(',').map((c: string) => c.trim()).filter(Boolean)
+                    : [],
+            categoryId,
+        };
+
+        // 4. Validate with Zod
+        const validatedData = createProductSchema.parse(parsedBody);
+        const allowedFits = ['SLIM', 'REGULAR'];
+        if (!allowedFits.includes(validatedData.fit)) {
+            throw new ApiError(400, 'Invalid fit. Must be SLIM or REGULAR');
+        }
+
+        // 5. Upload Images to Cloudinary
+        const uploadedImages: string[] = [];
+
+        if (req.files && Array.isArray(req.files)) {
+            // Store file paths for cleanup
+            uploadedFiles.push(...req.files.map(f => f.path));
+            
+            for (const file of req.files) {
+                try {
+                    const imageUrl = await uplaodOnCloudinary(file.path);
+                    if (imageUrl) {
+                        uploadedImages.push(imageUrl);
+                    } else {
+                        logger.warn(`Failed to upload image: ${file.originalname}`);
+                    }
+                } catch (uploadError) {
+                    logger.error(`Error uploading file ${file.originalname}:`, uploadError);
+                    // Continue with other files even if one fails
+                }
+            }
+
+            // Ensure at least one image was uploaded successfully
+            if (uploadedImages.length === 0) {
+                throw new ApiError(400, 'Failed to upload any images. Please try again.');
+            }
+        }
+
+        // 6. Create Product
+        const product = await prisma.product.create({
+            data: {
+                name: validatedData.name,
+                description: validatedData.description,
+                price: validatedData.price,
+                material: validatedData.material,
+                fit: validatedData.fit,
+                brand: validatedData.brand,
+                featured: validatedData.featured,
+                sizes: validatedData.sizes,
+                colors: validatedData.colors,
+                images: uploadedImages,
+                inStock: true,
+                category: {
+                    connect: { id: validatedData.categoryId },
+                },
+            },
+            include: { category: true },
+        });
+
+        // 7. Update Redis Cache
+        const cacheKey = `category_products:${categoryId}`;
+        try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                const products = JSON.parse(cached);
+                products.push(product);
+                await redis.set(cacheKey, JSON.stringify(products));
+            }
+        } catch (cacheError) {
+            logger.warn('Failed to update cache:', cacheError);
+            // Don't fail the request due to cache errors
+        }
+
+        // 8. Response
+        return res.status(201).json(
+            new ApiResponse(201, product, 'Product created successfully with images')
+        );
+
+    } catch (error) {
+        // Clean up any uploaded files that weren't processed
+        for (const filePath of uploadedFiles) {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        }
+        
+        logger.error('Error in addProduct:', error);
+        const appError = error instanceof ApiError ? error : new ApiError(500, 'Internal Server Error');
+        return res.status(appError.statusCode).json(appError);
     }
-);
+});
 export const getAllProductsForCategory = asyncHandler(
     async (req: Request, res: Response) => {
         try {
