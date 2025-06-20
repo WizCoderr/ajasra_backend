@@ -1,12 +1,13 @@
 import express from 'express';
 import {
-    addProduct,
     getAllProducts,
+    addProduct,
     getAllProductsForCategory,
     deleteProductFromCategoryAndProduct,
     updateStockEntry,
     getFeaturedProducts,
     updateFeaturedEntry,
+    getAllProductsForAdmins,
 } from '../controllers/product.controller';
 import { upload } from '../middleware/multer.middleware';
 import auth from '../middleware/auth.middleware';
@@ -33,6 +34,14 @@ router.get(
     getAllProductsForCategory
 );
 
+router.get(
+    '/admin/see',
+    (req, res, next) => {
+        logger.debug('Getting All Products');
+        next();
+    },
+    getAllProductsForAdmins
+);
 router.get(
     '/',
     (req, res, next) => {

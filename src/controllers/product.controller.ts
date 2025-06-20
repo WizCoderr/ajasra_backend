@@ -357,6 +357,18 @@ export const updateFeaturedEntry = asyncHandler(
     }
 );
 
+export const getAllProductsForAdmins = asyncHandler(
+    async (req: Request, res: Response) => {
+        const products = await prisma.product.findMany();
+        if (!products) {
+            res.status(400).json(new ApiError(400, 'Product Not Found'));
+        }
+        res.status(200).json(
+            new ApiResponse(200, products, 'All Products are here')
+        );
+    }
+);
+
 export const getAllProducts = asyncHandler(
     async (req: Request, res: Response) => {
         const products = await prisma.product.findMany({
