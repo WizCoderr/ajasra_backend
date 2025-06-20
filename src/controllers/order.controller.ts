@@ -160,7 +160,7 @@ export const getAllOrders = asyncHandler(
 
             await redis.set(cacheKey, JSON.stringify(orders));
 
-            res.json({ success: true, orders });
+            res.json(new ApiResponse(200,orders,"Orders"));
         } catch (err) {
             handleAppError(err);
         }
