@@ -143,22 +143,9 @@ export const getOrderById = asyncHandler(
 export const getAllOrders = asyncHandler(
     async (req: Request, res: Response) => {
         try {
-            const cacheKey = 'orders:all';
-
-            const cachedOrders = await redis.get(cacheKey);
-            if (cachedOrders) {
-                return res.json({
-                    success: true,
-                    orders: JSON.parse(cachedOrders),
-                });
-            }
-
             const orders = await prisma.order.findMany({
                 include: { items: true, user: true },
-                orderBy: { createdAt: 'desc' },
             });
-
-            await redis.set(cacheKey, JSON.stringify(orders));
 
             res.json(new ApiResponse(200,orders,"Orders"));
         } catch (err) {
