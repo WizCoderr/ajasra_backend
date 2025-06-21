@@ -456,7 +456,7 @@ export const getFeaturedProducts = asyncHandler(
                 new ApiResponse(200, product, 'All Fetured Products')
             );
         } catch (error) {
-            throw handleAppError(error);
+            res.json(new ApiError(500,"Internal Server Error"))
         }
     }
 );

@@ -11,7 +11,6 @@ import {
     getProductById,
 } from '../controllers/product.controller';
 import { upload } from '../middleware/multer.middleware';
-import auth from '../middleware/auth.middleware';
 import adminAuth from '../middleware/auth.admin.middleware';
 import logger from '../utils/logger';
 
