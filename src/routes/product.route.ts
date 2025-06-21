@@ -37,8 +37,9 @@ router.get(
 
 router.get(
     '/:productId',
-    (res,req,next)=>{
-        logger.debug(`Product by id`)
+    (req, res, next) => {
+        logger.debug(`Updating product ${req.params.productId}`);
+        next();
     },
     getProductById
 )
