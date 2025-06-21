@@ -17,7 +17,7 @@ export const addWishlistItem = asyncHandler(
                     .json(new ApiError(400, 'Product ID is required'));
             }
 
-            const userId = req.params.id;
+            const {userId} = req.params;
             if (!userId) {
                 return res
                     .status(400)
