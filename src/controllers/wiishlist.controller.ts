@@ -5,29 +5,77 @@ import { asyncHandler } from '../utils/AsyncHandler';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 import logger from '../utils/logger';
-
 export const addWishlistItem = asyncHandler(
     async (req: Request, res: Response) => {
         try {
             logger.debug("Let's add a product to wishlist");
             const { productId } = req.params;
+
             if (!productId) {
                 return res
                     .status(400)
                     .json(new ApiError(400, 'Product ID is required'));
             }
 
-            const {userId} = req.params;
+            const userId = req.user?.id;
             if (!userId) {
                 return res
                     .status(400)
                     .json(new ApiError(400, 'User ID is required'));
             }
 
-            const wishlistItem = await prisma.userWishlist.create({
+            logger.warn(
+                `Product with ProductId: ${productId} is going to be added to user: ${userId}`
+            );
+
+            // Check if product exists
+            const productExists = await prisma.product.findUnique({
+                where: { id: productId },
+            });
+
+            if (!productExists) {
+                return res
+                    .status(404)
+                    .json(new ApiError(404, 'Product not found'));
+            }
+
+            // Check if the product is already in wishlist
+            const existingWishlistItem = await prisma.userWishlist.findUnique({
+                where: {
+                    userId_productId: {
+                        userId,
+                        productId,
+                    },
+                },
+            });
+
+            if (existingWishlistItem) {
+                return res
+                    .status(200)
+                    .json(
+                        new ApiResponse(
+                            200,
+                            existingWishlistItem,
+                            'Product already in wishlist'
+                        )
+                    );
+            }
+
+            // Create wishlist item
+            await prisma.userWishlist.create({
                 data: {
-                    userId: userId,
-                    productId: productId,
+                    userId,
+                    productId,
+                },
+            });
+
+            // Fetch with relations
+            const wishlistItem = await prisma.userWishlist.findUnique({
+                where: {
+                    userId_productId: {
+                        userId,
+                        productId,
+                    },
                 },
                 include: {
                     product: {
@@ -37,6 +85,8 @@ export const addWishlistItem = asyncHandler(
                     },
                 },
             });
+
+            logger.debug('Wishlist Saved');
 
             return res
                 .status(201)
@@ -48,7 +98,10 @@ export const addWishlistItem = asyncHandler(
                     )
                 );
         } catch (error) {
-            handleAppError(error);
+            logger.error('Error adding wishlist item:', error);
+            return res
+                .status(500)
+                .json(new ApiError(500, 'Internal Server Error'));
         }
     }
 );
@@ -74,10 +127,10 @@ export const getWishlistItems = asyncHandler(
                     },
                 },
             });
-            if(!wishlistItems){
+            if (!wishlistItems) {
                 return res.json({
-                    'size': 0
-                })
+                    size: 0,
+                });
             }
             return res
                 .status(200)
