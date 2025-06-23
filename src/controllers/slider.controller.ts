@@ -9,26 +9,25 @@ import logger from '../utils/logger';
 
 export const addSlider = asyncHandler(
     async (req: Request, res: Response) => {
-        const {image} = req.body;
+        const {medisUrl} = req.body;
 
         logger.info(
             `Slider is uploading`
         );
 
-        if (!image) {
+        if (!medisUrl) {
             throw new ApiError(400, 'Image file is required');
         }
 
         // Upload to Cloudinary
-        const uploadResult = await uplaodOnCloudinary(image.path);
 
-        if (!uploadResult) {
+        if (!medisUrl) {
             throw new ApiError(500, 'Image upload failed');
         }
 
         const slider = await prisma.slider.create({
             data: {
-                image: uploadResult,
+                image: medisUrl,
             },
         });
 
