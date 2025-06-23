@@ -48,6 +48,7 @@ export const createProductSchema = z.object({
     price: z.number().positive('Price must be greater than zero'),
     material: z.string().min(1, 'Material is required'),
     fit: fitEnum,
+    images: z.array(z.string()),
     brand: z.string().min(1, 'Brand is required'),
     featured: z.boolean(),
     sizes: z.array(z.string())

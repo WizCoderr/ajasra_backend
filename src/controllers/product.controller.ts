@@ -55,6 +55,7 @@ export const addProduct = asyncHandler(
                 material: req.body.material,
                 fit: (req.body.fit || '').toUpperCase(),
                 brand: req.body.brand,
+                images: Array.isArray(req.body.images),
                 featured:
                     req.body.featured === 'true' || Boolean(req.body.featured),
                 sizes: Array.isArray(req.body.sizes)
@@ -85,10 +86,6 @@ export const addProduct = asyncHandler(
 
             // 5. Handle Images (skip cloudanery)
             let uploadedImages: string[] = [];
-            if (req.files && Array.isArray(req.files)) {
-                // Just collect file names or paths if needed, or skip entirely
-                uploadedImages = req.files.map((f) => f.filename || f.path || '');
-            }
 
             // 6. Create Product
             const product = await prisma.product.create({
