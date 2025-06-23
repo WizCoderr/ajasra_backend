@@ -15,6 +15,14 @@ import adminAuth from '../middleware/auth.admin.middleware';
 import logger from '../utils/logger';
 
 const router = express.Router();
+router.get(
+    '/featured',
+    (req, res, next) => {
+        logger.debug('Fetures Products');
+        next();
+    },
+    getFeaturedProducts
+);
 router.post(
     '/:categoryId/create',
     (req, res, next) => {
@@ -41,7 +49,7 @@ router.get(
         next();
     },
     getProductById
-)
+);
 
 router.get(
     '/admin/see',
@@ -59,14 +67,6 @@ router.get(
     },
     getAllProducts
 );
-router.get(
-    '/featured',
-    (req, res, next) => {
-        logger.debug("Fetures Products")
-        next();
-    },
-    getFeaturedProducts
-)
 
 router.put(
     '/:productId/updateStock',

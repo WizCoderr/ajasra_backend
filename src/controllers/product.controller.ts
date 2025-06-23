@@ -398,7 +398,8 @@ export const getProductById = asyncHandler(
                 new ApiResponse(200, product, `Product by id: ${productId}`)
             );
         } catch (error) {
-            throw handleAppError(error);
+            logger.error(`Error is ${error}`)
+            throw new ApiError(400,'Error');
         }
     }
 );
