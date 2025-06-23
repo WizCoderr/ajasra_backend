@@ -1,6 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
-import path from 'path';
 import logger from '../utils/logger';
 
 cloudinary.config({
@@ -13,10 +12,12 @@ export const uplaodOnCloudinary = async (localFilePath: string): Promise<string 
         if (!localFilePath) return null;
 
         // Upload the file to Cloudinary with signed upload
+        // Upload the file to Cloudinary with signed or unsigned upload (with preset)
+        logger.debug(`File is at ${localFilePath}`)
         const response = await cloudinary.uploader.upload(localFilePath, {
             resource_type: "auto",
+            upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET, // Make sure this env variable is set
         });
-
         // Delete the locally saved temporary file after successful upload
         fs.unlinkSync(localFilePath);
         
@@ -24,11 +25,6 @@ export const uplaodOnCloudinary = async (localFilePath: string): Promise<string 
         return response.secure_url;
         
     } catch (error) {
-        // Remove the locally saved temporary file on error
-        if (fs.existsSync(localFilePath)) {
-            fs.unlinkSync(localFilePath);
-        }
-        
         logger.error('Cloudinary upload error:', error);
         return null;
     }

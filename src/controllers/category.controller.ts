@@ -22,23 +22,23 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
 
 // Create a new category
 export const createCategory = asyncHandler(async (req: Request, res: Response) => {
-    const { name, description  } = req.body;
+    const { name, description ,category_img} = req.body;
 
     if (!name || !description) {
         return res.status(400).json(new ApiError(400, "Name and description are required"));
     }
 
     // If using multer with multiple files (fields), use req.files and type assertion
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-    const filePath = files?.['category_img']?.[0];
-    if (!filePath) {
-        return res.status(400).json(new ApiError(400, "Category image is required"));
-    }
+    // const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    // const filePath = files?.['category_img']?.[0];
+    // if (!filePath) {
+    //     return res.status(400).json(new ApiError(400, "Category image is required"));
+    // }
 
-    const category_img = await uplaodOnCloudinary(filePath.path);
-    if (!category_img) {
-        throw new ApiError(500, "Failed to upload category image");
-    }
+    // const category_img = await uplaodOnCloudinary(filePath.path);
+    // if (!category_img) {
+        // throw new ApiError(500, "Failed to upload category image");
+    // }
     const newCategory = await prisma.category.create({
         data: {
             name,
