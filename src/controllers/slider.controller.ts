@@ -6,16 +6,10 @@ import { asyncHandler } from '../utils/AsyncHandler';
 import { uplaodOnCloudinary } from '../service/cloudanery.service';
 import logger from '../utils/logger';
 
-interface MulterRequest extends Request {
-    files?:
-        | Express.Multer.File[]
-        | { [fieldname: string]: Express.Multer.File[] }
-        | any;
-}
 
 export const addSlider = asyncHandler(
-    async (req: MulterRequest, res: Response) => {
-        const image = req.file;
+    async (req: Request, res: Response) => {
+        const {image} = req.body;
 
         logger.info(
             `Slider is uploading`

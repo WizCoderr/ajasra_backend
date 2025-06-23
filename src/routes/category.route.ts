@@ -7,7 +7,7 @@ const router = express.Router();
 // Route to get all categories
 router.get('/',getCategories);
 // Route to create a new category with image upload
-router.post('/', upload.fields([{ name: 'category_img', maxCount: 1 }]),adminAuth, createCategory);
+router.post('/',adminAuth, createCategory);
 router.get('/:categoryName',getProductsForCategoryByName)
 
 export default router;

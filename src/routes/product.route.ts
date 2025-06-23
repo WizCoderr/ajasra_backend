@@ -29,7 +29,6 @@ router.post(
         logger.debug(`Creating product for category: ${req.params.categoryId}`);
         next();
     },
-    upload.array('images', 5),
     adminAuth,
     addProduct
 );
