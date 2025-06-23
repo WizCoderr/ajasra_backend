@@ -17,9 +17,7 @@ interface MulterRequest extends Request {
 }
 
 export const addProduct = asyncHandler(
-    async (req: MulterRequest, res: Response) => {
-        const uploadedFiles: string[] = []; // Track uploaded file paths for cleanup
-
+    async (req: Request, res: Response) => {
         try {
             const categoryId = req.params.categoryId;
             logger.info(`Creating product for category: ${categoryId}`);
@@ -63,17 +61,17 @@ export const addProduct = asyncHandler(
                     ? req.body.sizes
                     : req.body.sizes
                     ? req.body.sizes
-                          .split(',')
-                          .map((s: string) => s.trim())
-                          .filter(Boolean)
+                            .split(',')
+                            .map((s: string) => s.trim())
+                            .filter(Boolean)
                     : [],
                 colors: Array.isArray(req.body.colors)
                     ? req.body.colors
                     : req.body.colors
                     ? req.body.colors
-                          .split(',')
-                          .map((c: string) => c.trim())
-                          .filter(Boolean)
+                            .split(',')
+                            .map((c: string) => c.trim())
+                            .filter(Boolean)
                     : [],
                 categoryId,
             };
@@ -85,39 +83,11 @@ export const addProduct = asyncHandler(
                 throw new ApiError(400, 'Invalid fit. Must be SLIM or REGULAR');
             }
 
-            // 5. Upload Images to Cloudinary
-            const uploadedImages: string[] = [];
-
+            // 5. Handle Images (skip cloudanery)
+            let uploadedImages: string[] = [];
             if (req.files && Array.isArray(req.files)) {
-                // Store file paths for cleanup
-                uploadedFiles.push(...req.files.map((f) => f.path));
-
-                for (const file of req.files) {
-                    try {
-                        const imageUrl = await uplaodOnCloudinary(file.path);
-                        if (imageUrl) {
-                            uploadedImages.push(imageUrl);
-                        } else {
-                            logger.warn(
-                                `Failed to upload image: ${file.originalname}`
-                            );
-                        }
-                    } catch (uploadError) {
-                        logger.error(
-                            `Error uploading file ${file.originalname}:`,
-                            uploadError
-                        );
-                        // Continue with other files even if one fails
-                    }
-                }
-
-                // Ensure at least one image was uploaded successfully
-                if (uploadedImages.length === 0) {
-                    throw new ApiError(
-                        400,
-                        'Failed to upload any images. Please try again.'
-                    );
-                }
+                // Just collect file names or paths if needed, or skip entirely
+                uploadedImages = req.files.map((f) => f.filename || f.path || '');
             }
 
             // 6. Create Product
@@ -152,7 +122,6 @@ export const addProduct = asyncHandler(
                 }
             } catch (cacheError) {
                 logger.warn('Failed to update cache:', cacheError);
-                // Don't fail the request due to cache errors
             }
 
             // 8. Response
@@ -162,17 +131,10 @@ export const addProduct = asyncHandler(
                     new ApiResponse(
                         201,
                         product,
-                        'Product created successfully with images'
+                        'Product created successfully'
                     )
                 );
         } catch (error) {
-            // Clean up any uploaded files that weren't processed
-            for (const filePath of uploadedFiles) {
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
-                }
-            }
-
             logger.error('Error in addProduct:', error);
             const appError =
                 error instanceof ApiError
