@@ -9,7 +9,7 @@ import logger from '../utils/logger';
 
 export const addSlider = asyncHandler(
     async (req: Request, res: Response) => {
-        const {mediaUrl} = req.body;
+        const {mediaUrl,mediaType} = req.body;
 
         logger.info(
             `Slider is uploading`
@@ -25,9 +25,13 @@ export const addSlider = asyncHandler(
             },
         });
 
+        const sliderRes = {
+            slider,
+            mediaType
+        }
         return res
             .status(201)
-            .json(new ApiResponse(201, slider, 'Slider created successfully'));
+            .json(new ApiResponse(201, sliderRes, 'Slider created successfully'));
     }
 );
 
