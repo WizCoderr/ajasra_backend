@@ -124,6 +124,7 @@ model UserWishlist {
 model Slider{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   image String
+  mediaType String
 }
 
 type Address {

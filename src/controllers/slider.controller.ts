@@ -22,16 +22,14 @@ export const addSlider = asyncHandler(
         const slider = await prisma.slider.create({
             data: {
                 image: mediaUrl,
+                mediaType
             },
         });
 
-        const sliderRes = {
-            slider,
-            mediaType
-        }
+
         return res
             .status(201)
-            .json(new ApiResponse(201, sliderRes, 'Slider created successfully'));
+            .json(new ApiResponse(201, slider, 'Slider created successfully'));
     }
 );
 
