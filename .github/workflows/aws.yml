@@ -1,0 +1,26 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 13.203.137.62  # <-- Your EC2 Public IP
+          username: ubuntu     # or ec2-user for Amazon Linux
+          key: ${{ secrets.EC2_SSH_KEY }} # Your PEM key saved as GitHub Secret
+          script: |
+            cd ~/ajasra_backend
+            git pull origin master
+            bun install
+            sudo systemctl restart backend.service
