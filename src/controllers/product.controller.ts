@@ -90,9 +90,6 @@ export const addProduct = asyncHandler(async (req: Request, res: Response) => {
             throw new ApiError(400, 'Invalid fit. Must be SLIM or REGULAR');
         }
 
-        // 5. Handle Images (skip cloudanery)
-        let uploadedImages: string[] = [];
-
         // 6. Create Product
         const product = await prisma.product.create({
             data: {
@@ -105,7 +102,7 @@ export const addProduct = asyncHandler(async (req: Request, res: Response) => {
                 featured: validatedData.featured,
                 sizes: validatedData.sizes,
                 colors: validatedData.colors,
-                images: uploadedImages,
+                images: validatedData.images,
                 inStock: true,
                 category: {
                     connect: { id: validatedData.categoryId },
