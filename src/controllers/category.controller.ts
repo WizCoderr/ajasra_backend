@@ -5,6 +5,7 @@ import {ApiResponse} from '../utils/ApiResponse';
 import {ApiError} from '../utils/ApiError';
 import {uplaodOnCloudinary} from '../service/cloudanery.service';
 import {redis} from '../service/redis.service';
+import logger from '../utils/logger';
 export const getCategories = asyncHandler(async (req: Request, res: Response) => {
     const categories = await prisma.category.findMany({
         include: {
@@ -20,48 +21,53 @@ export const getCategories = asyncHandler(async (req: Request, res: Response) =>
 });
 
 
-// Create a new category
 export const createCategory = asyncHandler(async (req: Request, res: Response) => {
-    const { name, description ,category_img} = req.body;
+    try {
+        logger.info('Creating a new category...');
 
-    if (!name || !description) {
-        return res.status(400).json(new ApiError(400, "Name and description are required"));
+        const { name, description, category_img } = req.body;
+
+        // 1. Required field validation
+        const missingFields = [];
+        if (!name) missingFields.push('name');
+        if (!description) missingFields.push('description');
+        if (!category_img) missingFields.push('category_img');
+
+        if (missingFields.length > 0) {
+            throw new ApiError(400, `Missing required fields: ${missingFields.join(', ')}`);
+        }
+
+        // 2. Create the category in DB
+        const newCategory = await prisma.category.create({
+            data: {
+                name,
+                description,
+                image: category_img.toString(),
+            },
+            include: {
+                products: true,
+            },
+        });
+
+        // 3. Update Redis cache
+        const cachedCategories = await redis.get('categories');
+        if (cachedCategories) {
+            const categories = JSON.parse(cachedCategories);
+            categories.push(newCategory);
+            await redis.set('categories', JSON.stringify(categories));
+        } else {
+            await redis.set('categories', JSON.stringify([newCategory]));
+        }
+
+        logger.info('Category created successfully');
+        return res.status(201).json(new ApiResponse(201, newCategory, 'Category created successfully'));
+    } catch (error) {
+        logger.error('Error in createCategory:', error);
+        const appError = error instanceof ApiError ? error : new ApiError(500, 'Internal Server Error');
+        return res.status(appError.statusCode).json(appError);
     }
-
-    // If using multer with multiple files (fields), use req.files and type assertion
-    // const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-    // const filePath = files?.['category_img']?.[0];
-    // if (!filePath) {
-    //     return res.status(400).json(new ApiError(400, "Category image is required"));
-    // }
-
-    // const category_img = await uplaodOnCloudinary(filePath.path);
-    // if (!category_img) {
-        // throw new ApiError(500, "Failed to upload category image");
-    // }
-    const newCategory = await prisma.category.create({
-        data: {
-            name,
-            description,
-            image: category_img.toString()
-        },
-        include: {
-            products: true,
-        },
-    });
-
-    // Update the Redis cache for categories
-    const cachedCategories = await redis.get('categories');
-    if (cachedCategories) {
-        const categories = JSON.parse(cachedCategories);
-        categories.push(newCategory);
-        await redis.set('categories', JSON.stringify(categories));
-    } else {
-        await redis.set('categories', JSON.stringify([newCategory]));
-    }
-
-    res.status(201).json(new ApiResponse(201, newCategory, "Category created successfully"));
 });
+
 
 // Grt Products from categoryName
 export const getProductsForCategoryByName = asyncHandler(
