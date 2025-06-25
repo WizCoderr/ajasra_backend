@@ -406,6 +406,7 @@ export const getFeaturedProducts = asyncHandler(
         try {
             const product = await prisma.product.findMany({
                 where: {
+                    inStock:true,
                     featured: true,
                 },
             });
