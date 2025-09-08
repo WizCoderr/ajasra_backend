@@ -1,0 +1,37 @@
+# Node modules and dependencies
+node_modules
+
+# Git files
+.git
+.gitignore
+
+# Environment variables (we'll copy .env separately in Dockerfile)
+# .env
+
+# Build artifacts
+dist
+build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+.nyc_output
+
+# Docker files (to avoid recursive copying)
+Dockerfile
+docker-compose.yml
+.dockerignore
